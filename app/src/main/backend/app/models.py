@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean
-from .database import Base
+from sqlalchemy import Column, Integer, String,Boolean
+from app.database import Base
 
 class BlockedApp(Base):
     __tablename__ = "blocked_apps"

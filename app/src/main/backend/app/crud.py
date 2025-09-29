@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from . import models, schemas
+from app import models, schemas
 
 def get_blocked_apps(db: Session):
     return db.query(models.BlockedApp).all()

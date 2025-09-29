@@ -26,6 +26,11 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.focusbubble.R
+import android.util.Log
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,12 +51,20 @@ fun WelcomeScreen(
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                val accountName = account?.displayName ?: ""
+                val idToken = account?.idToken  // 🔑 Get Google ID token
+
+                if (idToken != null) {
+                    // Send this token to your backend
+                    sendIdTokenToBackend(context, idToken)
+                } else {
+                    Log.e("GoogleSignIn", "ID Token is null")
+                }
+
 
                 val firebaseUser = FirebaseAuth.getInstance().currentUser
                 val firebaseName = firebaseUser?.displayName ?: ""
 
-                val finalName = if (firebaseName.isNotBlank()) firebaseName else accountName
+                val finalName = if (firebaseName.isNotBlank()) firebaseName else (account?.displayName ?: "User")
 
                 // ✅ Save name to SharedPreferences
                 val sharedPrefs = context.getSharedPreferences("user_prefs", Activity.MODE_PRIVATE)
@@ -69,6 +82,8 @@ fun WelcomeScreen(
             onContinue("User")
         }
     }
+
+
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -186,8 +201,11 @@ fun WelcomeScreen(
                     onClick = {
                         isLoading = true
                         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken("464315770315-gstn8esmrr626nbmdrmkafc5mko19rq2.apps.googleusercontent.com") // ✅ Your new client ID
                             .requestEmail()
                             .build()
+
+
                         val client = GoogleSignIn.getClient(context, gso)
                         client.signOut().addOnCompleteListener {
                             client.revokeAccess().addOnCompleteListener {
@@ -251,3 +269,26 @@ fun WelcomeScreen(
         }
     }
 }
+fun sendIdTokenToBackend(context: android.content.Context, idToken: String) {
+    Thread {
+        try {
+            val client = okhttp3.OkHttpClient()
+            val json = """{"id_token":"$idToken"}"""
+            val body = json.toRequestBody("application/json".toMediaType())
+
+            val request = okhttp3.Request.Builder()
+                .url("https://YOUR_BACKEND_URL/auth/google") // 🔑 replace with your backend URL
+                .post(body)
+                .build()
+
+            val response = client.newCall(request).execute()
+            response.use {  // ✅ ensures resources are closed
+                Log.d("BackendAuth", "Response: ${it.code} - ${it.body?.string()}")
+            }
+        } catch (e: Exception) {
+            Log.e("BackendAuth", "Error sending token", e)
+        }
+    }.start()
+}
+
+

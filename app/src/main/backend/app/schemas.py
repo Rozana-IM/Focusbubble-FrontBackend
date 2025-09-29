@@ -13,4 +13,4 @@ class BlockedAppResponse(BlockedAppBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
