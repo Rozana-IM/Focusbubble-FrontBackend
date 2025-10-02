@@ -1,15 +1,33 @@
-from dotenv import load_dotenv
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-load_dotenv()
+# Absolute path to .env file
+BASE_DIR = Path(__file__).resolve().parent.parent  # goes from app/ to backend/
+ENV_PATH = BASE_DIR / ".env"
+
+if not ENV_PATH.exists():
+    raise FileNotFoundError(f".env file not found at {ENV_PATH}")
+
+load_dotenv(dotenv_path=ENV_PATH, override=True)
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+SECRET_KEY = os.getenv("SECRET_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 print("Loaded GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID)
+print("Loaded SECRET_KEY:", "*****" if SECRET_KEY else None)
+print("Loaded DATABASE_URL:", DATABASE_URL)
 
+
+
+# -------------------------------
+# FastAPI and database setup
+# -------------------------------
 from fastapi import FastAPI, Depends, HTTPException, Body
-from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
-# Correct package imports
 from app import models, schemas, crud
 from app.database import SessionLocal, engine
 from app.auth import verify_google_token
